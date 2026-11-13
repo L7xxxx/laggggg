@@ -78,7 +78,7 @@ $('go').onclick = async () => {
   await health();
 
   await Promise.allSettled(NODES.map(n =>
-    fetch(`${n}/start?ip=${encodeURIComponent(ip)}&port=${port}&pps=${per}&dur=${dur}`)
+    fetch(`${n}/start?ip=${encodeURIComponent(ip)}&port=${port}&pps=${per}&dur=${dur}&proto=udp`)
       .catch(() => {})
   ));
 
