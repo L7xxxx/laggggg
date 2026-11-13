@@ -92,7 +92,7 @@ function startTcp(ip, port, cps, dur) {
       try { s = net.connect(port, ip); } catch { continue; }
       s.setNoDelay(true);
       s.on('error', () => {});
-      const guard = setTimeout(() => { try { s.destroy(); } catch {} }, 500);
+      const guard = setTimeout(() => { try { s.destroy(); } catch {} }, 300);
       s.on('connect', () => {
         try { s.write(PAY); } catch {}
         try { s.destroy(); } catch {}
