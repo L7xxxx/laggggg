@@ -1,1 +1,3 @@
-https://laggggg.wispbyte.app
+const NODES = [
+  "https://laggggg.wispbyte.app",
+];
