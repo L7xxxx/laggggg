@@ -24,7 +24,7 @@ const js = (r, c, o) => {
 function payload(n) {
   const b = crypto.randomBytes(n);
   if (n >= 8) {
-    b.writeUIntBE(n - 3, 0, 3);
+    b.writeUIntBE(0xffff, 0, 3);
     b[3] = 0; b[4] = 0; b.writeUInt16BE(10101, 5);
   }
   return b;
